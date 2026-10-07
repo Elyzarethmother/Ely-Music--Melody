@@ -218,7 +218,10 @@ fun CreateScreen(
                             "Pop Ballad",
                             "R&B Soul",
                             "Latin Pop",
+                            "Reggaeton",
+                            "Dance / K-Pop",
                             "Cinematic Anthem",
+                            "Acoustic Folk",
                             "Clear"
                         ).forEach { genre ->
                             FilterChip(
@@ -733,11 +736,11 @@ fun CreateScreen(
                         }
 
                         // ==========================================
-                        // DOWNLOAD & SHARE MP3 BUTTONS
+                        // DOWNLOAD & SHARE MP3 / AUDIO BUTTONS
                         // ==========================================
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             // Download / Save MP3 button
                             Button(
@@ -755,10 +758,32 @@ fun CreateScreen(
                                 Icon(
                                     imageVector = Icons.Default.Download,
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Save MP3", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Save MP3", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+
+                            // Download / Save Studio WAV button
+                            OutlinedButton(
+                                onClick = { viewModel.saveCurrentSongToMusicFolder(context, asMp3 = false) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .testTag("download_wav_button"),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = GoldLight
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = GoldLight
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Save WAV", fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                             }
 
                             // Share MP3 button
@@ -769,18 +794,18 @@ fun CreateScreen(
                                     .height(44.dp)
                                     .testTag("share_mp3_button"),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = GoldLight
+                                    contentColor = TextPrimary
                                 ),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Share,
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = GoldLight
+                                    modifier = Modifier.size(16.dp),
+                                    tint = TextPrimary
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Share MP3", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Share", fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                             }
                         }
 

@@ -82,14 +82,14 @@ class ExampleUnitTest {
     // 4. Verify AudioExporter produces complete audio file byte stream
     val audioBytes = AudioExporter.createWavBytes(pcm!!)
     assertTrue("Exported audio must be larger than 44 bytes header", audioBytes.size > 44)
-    assertEquals("R".code.toByte(), audioBytes[0])
-    assertEquals("I".code.toByte(), audioBytes[1])
-    assertEquals("F".code.toByte(), audioBytes[2])
-    assertEquals("F".code.toByte(), audioBytes[3])
-    assertEquals("W".code.toByte(), audioBytes[8])
-    assertEquals("A".code.toByte(), audioBytes[9])
-    assertEquals("V".code.toByte(), audioBytes[10])
-    assertEquals("E".code.toByte(), audioBytes[11])
+    assertEquals('R'.code.toByte(), audioBytes[0])
+    assertEquals('I'.code.toByte(), audioBytes[1])
+    assertEquals('F'.code.toByte(), audioBytes[2])
+    assertEquals('F'.code.toByte(), audioBytes[3])
+    assertEquals('W'.code.toByte(), audioBytes[8])
+    assertEquals('A'.code.toByte(), audioBytes[9])
+    assertEquals('V'.code.toByte(), audioBytes[10])
+    assertEquals('E'.code.toByte(), audioBytes[11])
   }
 }
 

@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -72,6 +73,7 @@ fun LibraryScreen(
     val pieces by viewModel.pieces.collectAsState()
     val currentPiece by viewModel.currentPiece.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
@@ -187,7 +189,11 @@ fun LibraryScreen(
                     viewModel.loadPiece(piece, autoPlay = false)
                     viewModel.setTab(StudioTab.PLAYER)
                 },
-                onToggleFavorite = { viewModel.toggleFavorite(piece.id) }
+                onToggleFavorite = { viewModel.toggleFavorite(piece.id) },
+                onDownloadMp3 = {
+                    viewModel.loadPiece(piece, autoPlay = false)
+                    viewModel.saveCurrentSongToMusicFolder(context, asMp3 = true)
+                }
             )
         }
 
@@ -204,7 +210,8 @@ fun LibraryPieceItem(
     isPlaying: Boolean,
     onPlayToggle: () -> Unit,
     onCardClick: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onToggleFavorite: () -> Unit,
+    onDownloadMp3: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -279,6 +286,15 @@ fun LibraryPieceItem(
                     text = "${piece.durationFormatted} • ${if (piece.isInstrumental) "Instrumental" else "Vocal/Lyrics"}",
                     fontSize = 10.sp,
                     color = TextMuted
+                )
+            }
+
+            IconButton(onClick = onDownloadMp3) {
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = "Download MP3",
+                    tint = GoldLight,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 

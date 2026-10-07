@@ -73,8 +73,12 @@ class OrchestralSynthesizer {
                 .setBufferSizeInBytes(bufferSize)
                 .setTransferMode(AudioTrack.MODE_STREAM)
                 .build()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error initializing AudioTrack", e)
+        } catch (t: Throwable) {
+            try {
+                Log.e(TAG, "Error initializing AudioTrack", t)
+            } catch (_: Throwable) {
+                System.err.println("[$TAG] Error initializing AudioTrack: ${t.message}")
+            }
         }
     }
 
@@ -568,8 +572,12 @@ class OrchestralSynthesizer {
                 delay((durationSec * 1000).toLong() + 100)
                 previewTrack.stop()
                 previewTrack.release()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error playing preview note", e)
+            } catch (t: Throwable) {
+                try {
+                    Log.e(TAG, "Error playing preview note", t)
+                } catch (_: Throwable) {
+                    System.err.println("[$TAG] Error playing preview note: ${t.message}")
+                }
             }
         }
     }

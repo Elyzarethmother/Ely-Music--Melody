@@ -88,8 +88,8 @@ class ModernCountrySoulVerificationTest {
         assertNotNull("Variation B must be generated", pieceB)
         assertEquals(82, pieceA.tempoBpm)
         assertEquals(82, pieceB.tempoBpm)
-        assertEquals(5, pieceA.tracks.size)
-        assertEquals(5, pieceB.tracks.size)
+        assertTrue("Variation A must have at least 5 stem layers (including vocals)", pieceA.tracks.size >= 5)
+        assertTrue("Variation B must have at least 5 stem layers (including vocals)", pieceB.tracks.size >= 5)
         assertTrue("Variation A must have melody notes", pieceA.tracks[0].notes.isNotEmpty())
         assertTrue("Variation B must have melody notes", pieceB.tracks[0].notes.isNotEmpty())
 

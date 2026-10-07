@@ -108,15 +108,12 @@ fun SymphoniaApp(
                         .testTag("symphonia_navigation_bar")
                 ) {
                     val tabs = listOf(
-                        StudioTab.CREATE to Icons.Default.AutoAwesome,
-                        StudioTab.PLAYER to Icons.Default.GraphicEq,
-                        StudioTab.HARMONY to Icons.Default.Layers,
-                        StudioTab.LYRICS to Icons.Default.Mic,
-                        StudioTab.STYLE to Icons.Default.Tune,
-                        StudioTab.LIBRARY to Icons.Default.LibraryMusic
+                        Triple(StudioTab.CREATE, Icons.Default.AutoAwesome, "Song Maker"),
+                        Triple(StudioTab.PLAYER, Icons.Default.GraphicEq, "Studio Mixer"),
+                        Triple(StudioTab.LIBRARY, Icons.Default.LibraryMusic, "My Songs")
                     )
 
-                    tabs.forEach { (tab, icon) ->
+                    tabs.forEach { (tab, icon, label) ->
                         val selected = currentTab == tab
                         NavigationBarItem(
                             selected = selected,
@@ -124,14 +121,14 @@ fun SymphoniaApp(
                             icon = {
                                 Icon(
                                     imageVector = icon,
-                                    contentDescription = tab.label,
-                                    modifier = Modifier.size(20.dp)
+                                    contentDescription = label,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             },
                             label = {
                                 Text(
-                                    text = tab.label,
-                                    fontSize = 10.sp,
+                                    text = label,
+                                    fontSize = 11.sp,
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                                 )
                             },

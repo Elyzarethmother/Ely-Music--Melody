@@ -507,7 +507,61 @@ class MusicStudioViewModel(
                     We shall conquer darkness and illume the sky
                 """.trimIndent()
                 vocalStyle.value = "Epic Choir"
-                applyPreset(StylePresets.ALL[6])
+                applyPreset(StylePresets.ALL.firstOrNull { it.id == "cinematic_emotional" } ?: StylePresets.ALL[0])
+            }
+            "Reggaeton" -> {
+                customTitleInput.value = "Fuego en la Noche"
+                customLyricsInput.value = """
+                    [Verse 1]
+                    Bass vibrating through the floor, neon glowing bright
+                    Moving to the dembow beat beneath the city light
+                    Whisper secrets in my ear, let the rhythm sway
+                    Dancing till the sunrise comes to wash the night away
+
+                    [Chorus]
+                    Dale fuego, rhythm in the street
+                    Every heart is pounding to the dembow beat
+                    Move your body closer, never let it slow
+                    Feel the summer fever in the midnight glow
+                """.trimIndent()
+                vocalStyle.value = "Solo Lead Singer"
+                applyPreset(StylePresets.ALL.firstOrNull { it.id == "reggaeton_pop" } ?: StylePresets.ALL[0])
+            }
+            "Dance / K-Pop" -> {
+                customTitleInput.value = "Starlight Electra"
+                customLyricsInput.value = """
+                    [Verse 1]
+                    Neon lasers cutting through the midnight air
+                    Synth arpeggios spinning everywhere
+                    Catch the four-on-the-floor, step into the glow
+                    We don't need tomorrow when the lights are low
+
+                    [Chorus]
+                    Spark in the dark, higher than the sky
+                    Watch our galaxy of colors flying high
+                    Dance until the morning, let the music play
+                    Electro heartbeats never fade away
+                """.trimIndent()
+                vocalStyle.value = "Solo Lead Singer"
+                applyPreset(StylePresets.ALL.firstOrNull { it.id == "global_dance_kpop" } ?: StylePresets.ALL[0])
+            }
+            "Acoustic Folk" -> {
+                customTitleInput.value = "Canyon Pines & Morning Sun"
+                customLyricsInput.value = """
+                    [Verse 1]
+                    Morning coffee steaming in a wooden cup
+                    Watching mountain shadows as the sun wakes up
+                    Worn-out denim jacket and a trusted song
+                    Knowing that this quiet road is where I belong
+
+                    [Chorus]
+                    Wildflower valley, river running clear
+                    All the sweetest melodies are gathered here
+                    Strum the simple chords and let your spirit fly
+                    Underneath the shelter of the open sky
+                """.trimIndent()
+                vocalStyle.value = "Duet (Call & Response)"
+                applyPreset(StylePresets.ALL.firstOrNull { it.id == "acoustic_folk_indie" } ?: StylePresets.ALL[0])
             }
             "Clear" -> {
                 customTitleInput.value = ""
@@ -525,7 +579,7 @@ class MusicStudioViewModel(
         val file = AudioExporter.exportSongFile(context, piece, buffer, extension = ext)
         lastExportedFile.value = file
         if (file != null) {
-            exportStatusMessage.value = "MP3 Audio ready: ${file.name} (${file.length() / 1024} KB)"
+            exportStatusMessage.value = "✔ MP3 File Ready: ${file.name} (${file.length() / 1024} KB)"
         }
         return file
     }
@@ -536,10 +590,18 @@ class MusicStudioViewModel(
         val ext = if (asMp3) "mp3" else "wav"
         val uri = AudioExporter.saveToPublicMusic(context, piece, buffer, extension = ext)
         if (uri != null) {
-            exportStatusMessage.value = "Saved to Music/Symphonia/${piece.title}.$ext"
-            Toast.makeText(context, "Saved MP3 to Music library!", Toast.LENGTH_LONG).show()
+            val label = if (asMp3) "MP3" else "Studio WAV"
+            exportStatusMessage.value = "✔ $label Downloaded to Music/Symphonia/${piece.title}.$ext"
+            Toast.makeText(context, "✔ $label downloaded to device Music folder!", Toast.LENGTH_LONG).show()
         } else {
-            Toast.makeText(context, "Failed to save audio file", Toast.LENGTH_SHORT).show()
+            // Fallback export to cache file
+            val file = exportCurrentSong(context, asMp3 = asMp3)
+            if (file != null) {
+                exportStatusMessage.value = "✔ Audio ready in cache: ${file.name}"
+                Toast.makeText(context, "Saved to app audio storage", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Failed to save audio file", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
