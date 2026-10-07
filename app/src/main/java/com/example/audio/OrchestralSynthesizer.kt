@@ -141,6 +141,10 @@ class OrchestralSynthesizer {
         audioBuffer = pcm
     }
 
+    fun getAudioBuffer(): ShortArray? = audioBuffer
+    fun getBufferDurationMs(): Long = bufferDurationMs
+    fun getCurrentPositionMs(): Long = currentPositionMs
+
     private fun renderInstrumentNote(
         mixBuffer: FloatArray,
         startSample: Int,
