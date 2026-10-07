@@ -24,9 +24,23 @@ jobs:
 
       - name: Prepare environment and keystore
         run: |
-          if [ -f debug.keystore.base64 ] && [ ! -f debug.keystore ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
+          # 1. Restore debug keystore from base64 if present
+          if [ -f debug.keystore.base64 ] && [ -s debug.keystore.base64 ]; then
+            echo "Decoding debug.keystore from debug.keystore.base64..."
+            tr -d '\r\n' < debug.keystore.base64 | base64 -d > debug.keystore
           fi
+          # 2. If debug.keystore is still missing or empty, generate fallback
+          if [ ! -f debug.keystore ] || [ ! -s debug.keystore ]; then
+            echo "Generating fallback debug.keystore with keytool..."
+            keytool -genkey -v -keystore debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          # 3. Verify debug keystore
+          ls -la debug.keystore
+          keytool -list -keystore debug.keystore -storepass android -alias androiddebugkey
+          # 4. Prepare .env configuration
           if [ ! -f .env ] && [ -f .env.example ]; then
             cp .env.example .env
           fi
