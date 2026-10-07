@@ -1,0 +1,6 @@
+{
+  "name": "Symphonia",
+  "description": "Compose orchestral pieces with AI-driven melodies, lyric writing, and multi-track harmony layering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
