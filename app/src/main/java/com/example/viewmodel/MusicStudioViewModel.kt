@@ -1,8 +1,11 @@
 package com.example.viewmodel
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ai.GeminiOrchestrator
+import com.example.audio.AudioExporter
 import com.example.audio.InstrumentType
 import com.example.audio.OrchestralSynthesizer
 import com.example.audio.TrackLayer
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
 
 enum class StudioTab(val label: String, val icon: String) {
     CREATE("Create", "sparkles"),
@@ -71,27 +75,47 @@ class MusicStudioViewModel(
     private val _visualizerAmplitudes = MutableStateFlow(FloatArray(24))
     val visualizerAmplitudes: StateFlow<FloatArray> = _visualizerAmplitudes.asStateFlow()
 
-    // Creation Input State (Suno Style)
-    val promptInput = MutableStateFlow("An epic cinematic battle theme with driving staccato strings, soaring French horns, and thunderous timpani drops.")
-    val isCustomMode = MutableStateFlow(false)
-    val customTitleInput = MutableStateFlow("")
-    val customLyricsInput = MutableStateFlow("")
+    // Creation Input State (Lyrics + Music -> MP3)
+    val customTitleInput = MutableStateFlow("Midnight River Harmony")
+    val customLyricsInput = MutableStateFlow(
+        """
+        [Verse 1]
+        Dust on the highway, twilight falling slow
+        Chasing gentle memories from the songs we used to know
+        Foot on the pedal, sway into the groove
+        Every tender whisper has a heartache to remove
+
+        [Chorus]
+        Hold me in the harmony, singing through the night
+        Two souls dancing in the warm amber light
+        Country soul and tender grace, let the river flow
+        Every note of love is everywhere we go
+        """.trimIndent()
+    )
+    val promptInput = MutableStateFlow("Modern Country Soul: warm fingerpicked acoustic guitar, Rhodes electric piano, rounded bass, brushed drums, and soulful vocal duet.")
+    val isCustomMode = MutableStateFlow(true)
     val isInstrumental = MutableStateFlow(false)
+    val vocalStyle = MutableStateFlow("Duet (Call & Response)")
 
     // Style Parameters
     val selectedPreset = MutableStateFlow(StylePresets.ALL[0])
-    val tempoBpm = MutableStateFlow(136)
-    val keySignature = MutableStateFlow("D Minor")
-    val emotionalMood = MutableStateFlow("Heroic & Triumphant")
+    val tempoBpm = MutableStateFlow(82)
+    val keySignature = MutableStateFlow("G Major")
+    val emotionalMood = MutableStateFlow("Intimate & Warm")
     val timeSignature = MutableStateFlow("4/4")
     val selectedInstruments = MutableStateFlow<Set<InstrumentType>>(
         setOf(
-            InstrumentType.STRING_SECTION,
-            InstrumentType.FRENCH_HORN,
-            InstrumentType.CELLO,
-            InstrumentType.TIMPANI
+            InstrumentType.VOCAL_DUET,
+            InstrumentType.ACOUSTIC_GUITAR,
+            InstrumentType.ELECTRIC_PIANO,
+            InstrumentType.ROUNDED_BASS,
+            InstrumentType.BRUSHED_DRUMS
         )
     )
+
+    // Export & Sharing
+    val lastExportedFile = MutableStateFlow<File?>(null)
+    val exportStatusMessage = MutableStateFlow<String?>(null)
 
     // Generation State
     private val _generationState = MutableStateFlow(GenerationState())
@@ -169,16 +193,33 @@ class MusicStudioViewModel(
             )
 
             try {
+                val hasLyrics = !isInstrumental.value && customLyricsInput.value.isNotBlank()
+                val vocalInst = when {
+                    vocalStyle.value.contains("Duet", ignoreCase = true) -> InstrumentType.VOCAL_DUET
+                    vocalStyle.value.contains("Choir", ignoreCase = true) -> InstrumentType.CHOIR
+                    else -> InstrumentType.LEAD_VOCAL
+                }
+
+                val effectiveInstruments = selectedInstruments.value.toMutableList()
+                if (hasLyrics && !effectiveInstruments.contains(vocalInst)) {
+                    effectiveInstruments.add(0, vocalInst)
+                }
+
+                val title = customTitleInput.value.ifBlank {
+                    if (hasLyrics) "Song: " + customLyricsInput.value.lineSequence().firstOrNull { it.isNotBlank() && !it.startsWith("[") }?.take(24) ?: "New Composition"
+                    else "New Orchestral Piece"
+                }
+
                 val pair = orchestrator.generateOrchestralPair(
                     userPrompt = promptInput.value,
-                    customTitle = customTitleInput.value.ifBlank { null },
+                    customTitle = title,
                     customLyrics = if (isInstrumental.value) null else customLyricsInput.value.ifBlank { null },
                     tempoBpm = tempoBpm.value,
                     keySignature = keySignature.value,
                     emotionalMood = emotionalMood.value,
                     timeSignature = timeSignature.value,
                     isInstrumental = isInstrumental.value,
-                    selectedInstruments = selectedInstruments.value.toList()
+                    selectedInstruments = effectiveInstruments
                 )
 
                 // Add to repository
@@ -372,6 +413,149 @@ class MusicStudioViewModel(
             val current = customLyricsInput.value
             val combined = if (current.isBlank()) suggestion else "$current\n\n$suggestion"
             updateLyrics(combined)
+        }
+    }
+
+    // --- Lyric Template Presets ---
+    fun loadLyricPreset(genre: String) {
+        when (genre) {
+            "Country Soul" -> {
+                customTitleInput.value = "Dust & Amber Glow"
+                customLyricsInput.value = """
+                    [Verse 1]
+                    Dust on the highway, twilight falling slow
+                    Chasing gentle memories from the songs we used to know
+                    Foot on the pedal, sway into the groove
+                    Every tender whisper has a heartache to remove
+
+                    [Chorus]
+                    Hold me in the harmony, singing through the night
+                    Two souls dancing in the warm amber light
+                    Country soul and tender grace, let the river flow
+                    Every note of love is everywhere we go
+                """.trimIndent()
+                vocalStyle.value = "Duet (Call & Response)"
+                applyPreset(StylePresets.ALL[0])
+            }
+            "Pop Ballad" -> {
+                customTitleInput.value = "Shadows in the Rain"
+                customLyricsInput.value = """
+                    [Verse 1]
+                    Piano notes fall quiet on the window pane
+                    Counting every second till you call my name
+                    The city sleeps in silver, streets of blue and gray
+                    Waiting for the morning sun to guide the way
+
+                    [Chorus]
+                    I will stay right beside you through the rising storm
+                    Even in the freezing cold our melody is warm
+                    Lift your eyes and see the dawn breaking through the haze
+                    We will find forever in these quiet days
+                """.trimIndent()
+                vocalStyle.value = "Solo Lead Singer"
+                applyPreset(StylePresets.ALL[1])
+            }
+            "R&B Soul" -> {
+                customTitleInput.value = "Velvet Midnight Pocket"
+                customLyricsInput.value = """
+                    [Verse 1]
+                    Rhodes electric chords floating in the air
+                    Candle on the table, fingers through your hair
+                    Laid-back in the pocket, rhythm so sweet
+                    Every little heartbeat lands upon the beat
+
+                    [Chorus]
+                    Smooth soul magic when you're by my side
+                    No more secrets left for us to hide
+                    Golden honey whispers underneath the stars
+                    Music heals the bruises on these tender scars
+                """.trimIndent()
+                vocalStyle.value = "Solo Lead Singer"
+                applyPreset(StylePresets.ALL[2])
+            }
+            "Latin Pop" -> {
+                customTitleInput.value = "Corazón y Fuego"
+                customLyricsInput.value = """
+                    [Verse 1]
+                    Nylon guitar strings strumming in the breeze
+                    Warm romantic ocean under palm trees
+                    Look into my eyes and let the rhythm start
+                    Feel the sweet percussion beating in my heart
+
+                    [Chorus]
+                    Baila conmigo, under golden skies
+                    See the passion burning in your lovely eyes
+                    From Havana to the shore, we will never part
+                    One song, one passion, beating in my heart
+                """.trimIndent()
+                vocalStyle.value = "Duet (Call & Response)"
+                applyPreset(StylePresets.ALL[3])
+            }
+            "Cinematic Anthem" -> {
+                customTitleInput.value = "Triumph of the Stars"
+                customLyricsInput.value = """
+                    [Verse 1]
+                    Over distant mountains, banners take the sky
+                    Through the iron tempest where the eagles fly
+                    Sons of dawn awaking, fearless in the gale
+                    Hear the horn resounding down the ancient vale
+
+                    [Chorus]
+                    Sing to the heavens, let the trumpets blow
+                    Glory forever where the heroes go
+                    Choir of the ages, banner raised on high
+                    We shall conquer darkness and illume the sky
+                """.trimIndent()
+                vocalStyle.value = "Epic Choir"
+                applyPreset(StylePresets.ALL[6])
+            }
+            "Clear" -> {
+                customTitleInput.value = ""
+                customLyricsInput.value = ""
+            }
+        }
+        _lyricAnalysis.value = LyricUtils.analyzeLyrics(customLyricsInput.value)
+    }
+
+    // --- Audio Export & MP3 Sharing ---
+    fun exportCurrentSong(context: Context, asMp3: Boolean = true): File? {
+        val piece = _currentPiece.value ?: return null
+        val buffer = synthesizer.getAudioBuffer() ?: return null
+        val ext = if (asMp3) "mp3" else "wav"
+        val file = AudioExporter.exportSongFile(context, piece, buffer, extension = ext)
+        lastExportedFile.value = file
+        if (file != null) {
+            exportStatusMessage.value = "MP3 Audio ready: ${file.name} (${file.length() / 1024} KB)"
+        }
+        return file
+    }
+
+    fun saveCurrentSongToMusicFolder(context: Context, asMp3: Boolean = true) {
+        val piece = _currentPiece.value ?: return
+        val buffer = synthesizer.getAudioBuffer() ?: return
+        val ext = if (asMp3) "mp3" else "wav"
+        val uri = AudioExporter.saveToPublicMusic(context, piece, buffer, extension = ext)
+        if (uri != null) {
+            exportStatusMessage.value = "Saved to Music/Symphonia/${piece.title}.$ext"
+            Toast.makeText(context, "Saved MP3 to Music library!", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(context, "Failed to save audio file", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun shareCurrentSong(context: Context) {
+        val piece = _currentPiece.value ?: return
+        var file = lastExportedFile.value
+        if (file == null || !file.exists()) {
+            file = exportCurrentSong(context, asMp3 = true)
+        }
+        if (file != null && file.exists()) {
+            val shareIntent = AudioExporter.createShareIntent(context, file, piece)
+            val chooser = android.content.Intent.createChooser(shareIntent, "Share MP3 Song: ${piece.title}")
+            chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } else {
+            Toast.makeText(context, "Please generate song audio first", Toast.LENGTH_SHORT).show()
         }
     }
 

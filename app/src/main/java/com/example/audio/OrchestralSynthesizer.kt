@@ -204,11 +204,11 @@ class OrchestralSynthesizer {
                         else -> 1.0f
                     }
                 }
-                InstrumentType.CHOIR, InstrumentType.VOCAL_DUET -> {
-                    // Vocal choir / duet: expressive breath swell
+                InstrumentType.CHOIR, InstrumentType.VOCAL_DUET, InstrumentType.LEAD_VOCAL -> {
+                    // Vocal choir / duet / lead singing: expressive breath swell
                     when {
-                        timeSec < 0.25f -> (timeSec / 0.25f)
-                        progress > 0.75f -> max(0.0f, (1.0f - progress) / 0.25f)
+                        timeSec < 0.20f -> (timeSec / 0.20f)
+                        progress > 0.80f -> max(0.0f, (1.0f - progress) / 0.20f)
                         else -> 1.0f
                     }
                 }
@@ -363,6 +363,16 @@ class OrchestralSynthesizer {
                     val form1 = sin(p1).toFloat() * 0.6f + sin(p1 * 2).toFloat() * 0.25f + sin(p1 * 3).toFloat() * 0.15f
                     val lfo = 1.0 + 0.01 * sin(twoPi * 5.0 * timeSec)
                     form1 * lfo.toFloat()
+                }
+                InstrumentType.LEAD_VOCAL -> {
+                    // Expressive lead singer: vocal tract vowel formants with natural human vibrato
+                    val vibrato = 1.0 + 0.015 * sin(twoPi * 5.2 * timeSec) * min(1.0, timeSec * 2.5)
+                    val p1 = angularFreq * vibrato * i
+                    val formant1 = sin(p1).toFloat() * 0.65f
+                    val formant2 = sin(p1 * 2.0).toFloat() * 0.22f
+                    val formant3 = sin(p1 * 3.0).toFloat() * 0.13f
+                    val breathAir = if (timeSec < 0.06f) ((Math.random() - 0.5) * 0.10).toFloat() else 0.0f
+                    (formant1 + formant2 + formant3) * 0.9f + breathAir
                 }
                 InstrumentType.BRUSHED_DRUMS -> {
                     // Brushed drums: punchy kick + brushed snare noise burst

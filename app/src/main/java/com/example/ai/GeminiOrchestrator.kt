@@ -404,7 +404,7 @@ class GeminiOrchestrator {
         }
 
         // Instrument assignments
-        val leadInst = selectedInstruments.firstOrNull { it != InstrumentType.TIMPANI && it != InstrumentType.CELLO }
+        val leadInst = selectedInstruments.firstOrNull { it != InstrumentType.TIMPANI && it != InstrumentType.CELLO && it.family != com.example.audio.InstrumentFamily.VOICE }
             ?: InstrumentType.VIOLIN_SOLO
         val highInst = InstrumentType.STRING_SECTION
         val midInst = selectedInstruments.firstOrNull { it == InstrumentType.FRENCH_HORN || it == InstrumentType.CHOIR || it == InstrumentType.HARP }
@@ -412,48 +412,76 @@ class GeminiOrchestrator {
         val bassInst = InstrumentType.CELLO
         val percInst = InstrumentType.TIMPANI
 
-        val tracks = listOf(
-            TrackLayer(
-                id = "track_melody",
-                type = TrackType.MELODY,
-                name = "Lead: ${leadInst.displayName}",
-                instrument = leadInst,
-                notes = melodyNotes,
-                volume = 0.92f
-            ),
-            TrackLayer(
-                id = "track_harmony_high",
-                type = TrackType.HIGH_HARMONY,
-                name = "High: ${highInst.displayName}",
-                instrument = highInst,
-                notes = highHarmonyNotes,
-                volume = 0.75f
-            ),
-            TrackLayer(
-                id = "track_harmony_mid",
-                type = TrackType.MID_HARMONY,
-                name = "Chords: ${midInst.displayName}",
-                instrument = midInst,
-                notes = midHarmonyNotes,
-                volume = 0.68f
-            ),
-            TrackLayer(
-                id = "track_bass",
-                type = TrackType.BASS,
-                name = "Bass: ${bassInst.displayName}",
-                instrument = bassInst,
-                notes = bassNotes,
-                volume = 0.82f
-            ),
-            TrackLayer(
-                id = "track_percussion",
-                type = TrackType.PERCUSSION,
-                name = "Rhythm: ${percInst.displayName}",
-                instrument = percInst,
-                notes = percNotes,
-                volume = 0.85f
+        val hasLyrics = !lyrics.isNullOrBlank() && !isInstrumental
+        val vocalInst = if (selectedInstruments.any { it == InstrumentType.VOCAL_DUET }) {
+            InstrumentType.VOCAL_DUET
+        } else if (selectedInstruments.any { it == InstrumentType.CHOIR }) {
+            InstrumentType.CHOIR
+        } else {
+            InstrumentType.LEAD_VOCAL
+        }
+
+        val trackList = mutableListOf<TrackLayer>()
+
+        if (hasLyrics) {
+            trackList.add(
+                TrackLayer(
+                    id = "track_vocal",
+                    type = TrackType.VOCAL,
+                    name = "Vocals: ${vocalInst.displayName}",
+                    instrument = vocalInst,
+                    notes = melodyNotes,
+                    volume = 0.98f
+                )
+            )
+        }
+
+        trackList.addAll(
+            listOf(
+                TrackLayer(
+                    id = "track_melody",
+                    type = TrackType.MELODY,
+                    name = "Lead: ${leadInst.displayName}",
+                    instrument = leadInst,
+                    notes = melodyNotes,
+                    volume = if (hasLyrics) 0.80f else 0.92f
+                ),
+                TrackLayer(
+                    id = "track_harmony_high",
+                    type = TrackType.HIGH_HARMONY,
+                    name = "High: ${highInst.displayName}",
+                    instrument = highInst,
+                    notes = highHarmonyNotes,
+                    volume = 0.75f
+                ),
+                TrackLayer(
+                    id = "track_harmony_mid",
+                    type = TrackType.MID_HARMONY,
+                    name = "Chords: ${midInst.displayName}",
+                    instrument = midInst,
+                    notes = midHarmonyNotes,
+                    volume = 0.68f
+                ),
+                TrackLayer(
+                    id = "track_bass",
+                    type = TrackType.BASS,
+                    name = "Bass: ${bassInst.displayName}",
+                    instrument = bassInst,
+                    notes = bassNotes,
+                    volume = 0.82f
+                ),
+                TrackLayer(
+                    id = "track_percussion",
+                    type = TrackType.PERCUSSION,
+                    name = "Rhythm: ${percInst.displayName}",
+                    instrument = percInst,
+                    notes = percNotes,
+                    volume = 0.85f
+                )
             )
         )
+
+        val tracks = trackList
 
         // Sections
         val sections = listOf(

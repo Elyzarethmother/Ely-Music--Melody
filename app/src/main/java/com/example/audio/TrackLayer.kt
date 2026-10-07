@@ -8,6 +8,7 @@ import com.example.ui.theme.TrackMelody
 import com.example.ui.theme.TrackPercussion
 
 enum class TrackType(val defaultTitle: String, val color: Color) {
+    VOCAL("Vocal Melody (Lyrics)", Color(0xFFFF8A80)),
     MELODY("Lead Melody", TrackMelody),
     HIGH_HARMONY("High Harmony", TrackHarmonyHigh),
     MID_HARMONY("Mid Chords / Pads", TrackHarmonyMid),

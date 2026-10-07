@@ -24,13 +24,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,12 +42,11 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -57,14 +56,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.audio.InstrumentType
 import com.example.model.OrchestralPiece
 import com.example.model.StylePresets
+import com.example.ui.components.OrchestralWaveformView
 import com.example.ui.theme.DarkBackground
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DarkSurfaceHighlight
@@ -76,7 +77,6 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.MusicStudioViewModel
-import com.example.viewmodel.StudioTab
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -84,32 +84,26 @@ fun CreateScreen(
     viewModel: MusicStudioViewModel,
     modifier: Modifier = Modifier
 ) {
-    val prompt by viewModel.promptInput.collectAsState()
-    val isCustomMode by viewModel.isCustomMode.collectAsState()
+    val context = LocalContext.current
+
     val customTitle by viewModel.customTitleInput.collectAsState()
     val customLyrics by viewModel.customLyricsInput.collectAsState()
-    val isInstrumental by viewModel.isInstrumental.collectAsState()
+    val prompt by viewModel.promptInput.collectAsState()
     val tempo by viewModel.tempoBpm.collectAsState()
     val key by viewModel.keySignature.collectAsState()
     val mood by viewModel.emotionalMood.collectAsState()
-    val selectedInstruments by viewModel.selectedInstruments.collectAsState()
+    val selectedPreset by viewModel.selectedPreset.collectAsState()
+    val vocalStyle by viewModel.vocalStyle.collectAsState()
+    val isInstrumental by viewModel.isInstrumental.collectAsState()
+
     val generationState by viewModel.generationState.collectAsState()
     val currentPiece by viewModel.currentPiece.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+    val currentTimeMs by viewModel.currentTimeMs.collectAsState()
+    val totalTimeMs by viewModel.totalTimeMs.collectAsState()
+    val amplitudes by viewModel.visualizerAmplitudes.collectAsState()
+    val exportStatus by viewModel.exportStatusMessage.collectAsState()
     val pieces by viewModel.pieces.collectAsState()
-
-    val inspirationPrompts = listOf(
-        "Modern Country Soul" to StylePresets.ALL[0],
-        "Emotional Pop Ballad" to StylePresets.ALL[1],
-        "Contemporary R&B / Soul" to StylePresets.ALL[2],
-        "Latin Pop" to StylePresets.ALL[3],
-        "Reggaeton Pop" to StylePresets.ALL[4],
-        "Global Dance / K-Pop" to StylePresets.ALL[5],
-        "Cinematic Emotional" to StylePresets.ALL[6],
-        "Acoustic Folk / Indie" to StylePresets.ALL[7],
-        "Blues Rock / Southern Soul" to StylePresets.ALL[8],
-        "Indian Fusion / Soul" to StylePresets.ALL[9]
-    )
 
     LazyColumn(
         modifier = modifier
@@ -119,22 +113,35 @@ fun CreateScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-            // Header
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // App Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(GoldPrimary, RoyalViolet)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            tint = GoldPrimary,
+                            tint = Color.White,
                             modifier = Modifier.size(24.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
                         Text(
                             text = "Symphonia Studio",
                             style = MaterialTheme.typography.titleLarge.copy(
@@ -142,75 +149,131 @@ fun CreateScreen(
                                 color = TextPrimary
                             )
                         )
-                    }
-                    Text(
-                        text = "Compose orchestral masterworks with AI melody & harmony",
-                        style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
-                    )
-                }
-
-                // Mode switch: Simple vs Custom (like Suno)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(DarkSurfaceVariant)
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Custom",
-                        fontSize = 12.sp,
-                        color = if (isCustomMode) GoldPrimary else TextMuted,
-                        fontWeight = if (isCustomMode) FontWeight.Bold else FontWeight.Normal
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Switch(
-                        checked = isCustomMode,
-                        onCheckedChange = { viewModel.isCustomMode.value = it },
-                        modifier = Modifier.testTag("custom_mode_toggle"),
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = GoldPrimary,
-                            checkedTrackColor = GoldPrimary.copy(alpha = 0.3f),
-                            uncheckedThumbColor = TextMuted,
-                            uncheckedTrackColor = DarkSurfaceHighlight
+                        Text(
+                            text = "Generate Full Audio (Lyrics + Music MP3)",
+                            style = MaterialTheme.typography.labelSmall.copy(color = GoldLight)
                         )
-                    )
+                    }
                 }
             }
         }
 
-        // Prompt Input Card
+        // ==========================================
+        // STEP 1: INPUT LYRICS (VOCAL AUDIO)
+        // ==========================================
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("lyrics_input_card"),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = if (isCustomMode) "Style & Orchestration Prompt" else "Orchestral Vision Prompt",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = null,
+                                tint = GoldPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "1. Input Song Lyrics",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                            )
+                        }
+
+                        // Character / line count badge
+                        Text(
+                            text = "${customLyrics.lines().filter { it.isNotBlank() }.size} lines",
+                            fontSize = 11.sp,
                             color = GoldLight
                         )
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    }
 
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Quick Genre Lyric Starters
+                    Text(
+                        text = "Quick Lyric Starters:",
+                        style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            "Country Soul",
+                            "Pop Ballad",
+                            "R&B Soul",
+                            "Latin Pop",
+                            "Cinematic Anthem",
+                            "Clear"
+                        ).forEach { genre ->
+                            FilterChip(
+                                selected = false,
+                                onClick = { viewModel.loadLyricPreset(genre) },
+                                label = { Text(genre, fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = DarkSurfaceVariant,
+                                    labelColor = if (genre == "Clear") TextMuted else GoldLight
+                                ),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Title Field
                     OutlinedTextField(
-                        value = prompt,
-                        onValueChange = { viewModel.promptInput.value = it },
+                        value = customTitle,
+                        onValueChange = { viewModel.customTitleInput.value = it },
+                        label = { Text("Song Title", fontSize = 12.sp) },
+                        placeholder = { Text("e.g. Midnight River Harmony", color = TextMuted) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("custom_title_input"),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = GoldPrimary,
+                            unfocusedBorderColor = DarkSurfaceHighlight,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            cursorColor = GoldPrimary
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Lyrics Text Area
+                    OutlinedTextField(
+                        value = customLyrics,
+                        onValueChange = { viewModel.customLyricsInput.value = it },
                         placeholder = {
                             Text(
-                                "e.g., A soaring brass symphony with swelling strings, thunderous timpani drops, and majestic choir...",
+                                "Enter or paste your lyrics here...\n\n[Verse 1]\nDust on the highway, twilight falling slow...\n\n[Chorus]\nHold me in the harmony, singing through the night...",
                                 color = TextMuted,
-                                fontSize = 14.sp
+                                fontSize = 13.sp
                             )
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("prompt_input_field"),
-                        minLines = 3,
-                        maxLines = 5,
+                            .testTag("lyrics_input_field"),
+                        minLines = 6,
+                        maxLines = 10,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = GoldPrimary,
                             unfocusedBorderColor = DarkSurfaceHighlight,
@@ -221,10 +284,42 @@ fun CreateScreen(
                         shape = RoundedCornerShape(12.dp)
                     )
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Quick Structure Tags
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Add Tag:",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                        listOf("[Verse]", "[Chorus]", "[Bridge]", "[Outro]").forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(DarkSurfaceVariant)
+                                    .clickable { viewModel.insertSectionTag(tag) }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = tag,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = GoldPrimary
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Vocal Style Selector
                     Text(
-                        text = "Quick Inspiration Presets:",
+                        text = "Vocal Audio Performance:",
                         style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -233,16 +328,32 @@ fun CreateScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        inspirationPrompts.forEach { (label, preset) ->
+                        listOf(
+                            "Duet (Call & Response)",
+                            "Solo Lead Singer",
+                            "Epic Choir"
+                        ).forEach { vStyle ->
+                            val isSel = vocalStyle == vStyle
                             FilterChip(
-                                selected = false,
-                                onClick = { viewModel.applyPreset(preset) },
-                                label = { Text(label, fontSize = 11.sp) },
+                                selected = isSel,
+                                onClick = { viewModel.vocalStyle.value = vStyle },
+                                label = { Text(vStyle, fontSize = 11.sp) },
+                                leadingIcon = if (isSel) {
+                                    {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
+                                } else null,
                                 colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = GoldPrimary,
+                                    selectedLabelColor = Color(0xFF110C1C),
                                     containerColor = DarkSurfaceVariant,
                                     labelColor = TextSecondary
                                 ),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(10.dp)
                             )
                         }
                     }
@@ -250,214 +361,187 @@ fun CreateScreen(
             }
         }
 
-        // Custom Mode Section (Title, Lyrics, Instrument Toggles, Tempo)
+        // ==========================================
+        // STEP 2: CHOOSE MUSICAL STYLE
+        // ==========================================
         item {
-            AnimatedVisibility(visible = isCustomMode) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("style_input_card"),
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = null,
+                            tint = GoldPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Custom Composition Studio",
-                            style = MaterialTheme.typography.titleSmall.copy(
+                            text = "2. Choose Musical Style",
+                            style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = RoyalViolet
+                                color = TextPrimary
                             )
                         )
+                    }
 
-                        // Title Field
-                        OutlinedTextField(
-                            value = customTitle,
-                            onValueChange = { viewModel.customTitleInput.value = it },
-                            label = { Text("Movement / Piece Title (Optional)") },
-                            placeholder = { Text("e.g. Coronation of the Star King", color = TextMuted) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("custom_title_input"),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = RoyalViolet,
-                                unfocusedBorderColor = DarkSurfaceHighlight,
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary
-                            ),
-                            shape = RoundedCornerShape(10.dp)
-                        )
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                        // Instrumental Toggle
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Instrumental Only",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Medium,
-                                        color = TextPrimary
-                                    )
-                                )
-                                Text(
-                                    text = "Pure orchestral symphony without vocals or lyrics",
-                                    style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
-                                )
-                            }
-                            Switch(
-                                checked = isInstrumental,
-                                onCheckedChange = { viewModel.isInstrumental.value = it },
-                                modifier = Modifier.testTag("instrumental_toggle"),
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = GoldPrimary,
-                                    checkedTrackColor = GoldPrimary.copy(alpha = 0.3f)
-                                )
-                            )
-                        }
+                    Text(
+                        text = "Select Musical Genre & Arrangement:",
+                        style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                        // Lyrics Section (if not instrumental)
-                        if (!isInstrumental) {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
+                    // Style Presets (Horizontal / Flow)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        StylePresets.ALL.take(8).forEach { preset ->
+                            val isSelected = selectedPreset.id == preset.id
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { viewModel.applyPreset(preset) },
+                                label = {
                                     Text(
-                                        text = "Lyrics / Poetic Stanzas",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = GoldLight
-                                        )
+                                        text = "${preset.title} (${preset.tempoBpm} BPM)",
+                                        fontSize = 11.sp
                                     )
-                                    IconButton(
-                                        onClick = { viewModel.requestAiLyricSuggestion() },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
+                                },
+                                leadingIcon = if (isSelected) {
+                                    {
                                         Icon(
-                                            imageVector = Icons.Default.AutoAwesome,
-                                            contentDescription = "Suggest Lyrics",
-                                            tint = GoldPrimary,
-                                            modifier = Modifier.size(18.dp)
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp)
                                         )
                                     }
-                                }
-
-                                OutlinedTextField(
-                                    value = customLyrics,
-                                    onValueChange = { viewModel.updateLyrics(it) },
-                                    placeholder = {
-                                        Text(
-                                            "[Verse 1]\nBeyond the misty mountain crest...\n\n[Chorus]\nRaise the spears against the dark!",
-                                            color = TextMuted,
-                                            fontSize = 13.sp
-                                        )
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("custom_lyrics_input"),
-                                    minLines = 4,
-                                    maxLines = 6,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = RoyalViolet,
-                                        unfocusedBorderColor = DarkSurfaceHighlight,
-                                        focusedTextColor = TextPrimary,
-                                        unfocusedTextColor = TextPrimary
-                                    ),
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                            }
+                                } else null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = GoldPrimary,
+                                    selectedLabelColor = Color(0xFF110C1C),
+                                    containerColor = DarkSurfaceVariant,
+                                    labelColor = TextSecondary
+                                ),
+                                shape = RoundedCornerShape(10.dp)
+                            )
                         }
+                    }
 
-                        // Instrumentation Selection Rack
-                        Column {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Style Prompt / Description
+                    OutlinedTextField(
+                        value = prompt,
+                        onValueChange = { viewModel.promptInput.value = it },
+                        label = { Text("Style & Instrumentation Description", fontSize = 12.sp) },
+                        placeholder = {
                             Text(
-                                text = "Orchestral Instrument Rack:",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = TextPrimary
-                                )
+                                "e.g. fingerpicked acoustic guitar, warm electric piano, rounded bass, brushed drums",
+                                color = TextMuted,
+                                fontSize = 12.sp
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                InstrumentType.values().forEach { inst ->
-                                    val isSelected = selectedInstruments.contains(inst)
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = { viewModel.toggleInstrumentSelection(inst) },
-                                        label = { Text(inst.displayName, fontSize = 11.sp) },
-                                        leadingIcon = if (isSelected) {
-                                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                                        } else null,
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = GoldPrimary.copy(alpha = 0.25f),
-                                            selectedLabelColor = GoldLight,
-                                            containerColor = DarkSurfaceVariant,
-                                            labelColor = TextSecondary
-                                        ),
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                }
-                            }
-                        }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("style_prompt_field"),
+                        minLines = 2,
+                        maxLines = 3,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = GoldPrimary,
+                            unfocusedBorderColor = DarkSurfaceHighlight,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            cursorColor = GoldPrimary
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
 
-                        // Tempo & Mood Row
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Tempo: $tempo BPM", color = TextPrimary, fontSize = 13.sp)
-                                Text("Key: $key", color = GoldLight, fontSize = 13.sp)
-                            }
-                            Slider(
-                                value = tempo.toFloat(),
-                                onValueChange = { viewModel.tempoBpm.value = it.toInt() },
-                                valueRange = 40f..200f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = GoldPrimary,
-                                    activeTrackColor = GoldPrimary,
-                                    inactiveTrackColor = DarkSurfaceHighlight
-                                )
-                            )
-                        }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Tempo Slider
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Tempo:",
+                            style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
+                        )
+                        Text(
+                            text = "$tempo BPM",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GoldLight
+                        )
+                    }
+
+                    Slider(
+                        value = tempo.toFloat(),
+                        onValueChange = { viewModel.tempoBpm.value = it.toInt() },
+                        valueRange = 60f..180f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = GoldPrimary,
+                            activeTrackColor = GoldPrimary,
+                            inactiveTrackColor = DarkSurfaceHighlight
+                        )
+                    )
+
+                    // Key Signature & Mood Quick Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Key: $key",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                        Text(
+                            text = "Mood: $mood",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
                     }
                 }
             }
         }
 
-        // Generate Master Button (Suno Style)
+        // ==========================================
+        // STEP 3: GENERATE BUTTON
+        // ==========================================
         item {
+            val isGenerating = generationState.isGenerating
+
             Button(
                 onClick = { viewModel.generatePieces() },
-                enabled = !generationState.isGenerating,
+                enabled = !isGenerating,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .testTag("generate_pieces_button"),
+                    .testTag("generate_song_button"),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = GoldPrimary,
-                    disabledContainerColor = DarkSurfaceHighlight
+                    contentColor = Color(0xFF110C1C)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                if (generationState.isGenerating) {
+                if (isGenerating) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = Color(0xFF13101E),
+                        color = Color(0xFF110C1C),
                         strokeWidth = 2.5.dp
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = generationState.statusText.ifBlank { "Composing Masterpiece..." },
-                        color = Color(0xFF13101E),
+                        text = "Generating Audio + Music...",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )
@@ -465,206 +549,350 @@ fun CreateScreen(
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
-                        tint = Color(0xFF13101E),
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Compose Orchestral Piece (2 Variations)",
-                        color = Color(0xFF13101E),
+                        text = "GENERATE SONG (AUDIO + MUSIC MP3)",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
+                        fontSize = 14.sp
                     )
+                }
+            }
+
+            if (isGenerating) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = generationState.statusText.ifBlank { "Synthesizing vocal audio & musical arrangement in $mood..." },
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = GoldLight,
+                        textAlign = TextAlign.Center
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // ==========================================
+        // STEP 4: FINAL RESULT — AUDIO + MUSIC MP3
+        // ==========================================
+        val activePiece = currentPiece
+        if (activePiece != null) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("generated_song_result_card"),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    border = CardDefaults.outlinedCardBorder().copy(
+                        brush = Brush.horizontalGradient(
+                            listOf(GoldPrimary, RoyalViolet, GoldPrimary)
+                        )
+                    ),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = activePiece.title,
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${activePiece.styleDescription} • ${activePiece.tempoBpm} BPM",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            // Audio Format Badge
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(GoldPrimary.copy(alpha = 0.2f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "MP3 AUDIO",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GoldLight
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Waveform Visualizer
+                        val progress = if (totalTimeMs > 0) currentTimeMs.toFloat() / totalTimeMs else 0f
+                        OrchestralWaveformView(
+                            amplitudes = amplitudes,
+                            progress = progress,
+                            isPlaying = isPlaying,
+                            modifier = Modifier.fillMaxWidth(),
+                            onSeekFraction = { fraction ->
+                                viewModel.seekTo((fraction * totalTimeMs).toLong())
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Player Controls: Play/Pause and Timeline
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            val currentSec = (currentTimeMs / 1000).toInt()
+                            val totalSec = (totalTimeMs / 1000).toInt()
+                            Text(
+                                text = "%d:%02d / %d:%02d".format(
+                                    currentSec / 60,
+                                    currentSec % 60,
+                                    totalSec / 60,
+                                    totalSec % 60
+                                ),
+                                fontSize = 12.sp,
+                                color = GoldLight,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            // Big Play / Pause button
+                            IconButton(
+                                onClick = { viewModel.togglePlayPause() },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(GoldPrimary)
+                                    .testTag("play_pause_song_button")
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = if (isPlaying) "Pause" else "Play",
+                                    tint = Color(0xFF110C1C),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+
+                            Text(
+                                text = "Vocals + Music",
+                                fontSize = 11.sp,
+                                color = TextSecondary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Synchronized Karaoke Lyrics Display
+                        if (activePiece.lyrics.isNotBlank()) {
+                            Text(
+                                text = "Synchronized Lyrics:",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = TextSecondary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(DarkSurfaceVariant)
+                                    .padding(12.dp)
+                            ) {
+                                val lyricLines = activePiece.lyrics.lines().filter { it.isNotBlank() }
+                                val activeLineIndex = if (totalTimeMs > 0 && lyricLines.isNotEmpty()) {
+                                    ((currentTimeMs.toFloat() / totalTimeMs) * lyricLines.size).toInt().coerceIn(0, lyricLines.lastIndex)
+                                } else 0
+
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    lyricLines.forEachIndexed { idx, line ->
+                                        val isCurrent = idx == activeLineIndex && isPlaying
+                                        Text(
+                                            text = line,
+                                            fontSize = if (isCurrent) 13.sp else 12.sp,
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isCurrent) GoldPrimary else if (line.startsWith("[")) GoldLight.copy(alpha = 0.7f) else TextSecondary
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
+
+                        // ==========================================
+                        // DOWNLOAD & SHARE MP3 BUTTONS
+                        // ==========================================
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Download / Save MP3 button
+                            Button(
+                                onClick = { viewModel.saveCurrentSongToMusicFolder(context, asMp3 = true) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .testTag("download_mp3_button"),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = GoldPrimary,
+                                    contentColor = Color(0xFF110C1C)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Save MP3", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+
+                            // Share MP3 button
+                            OutlinedButton(
+                                onClick = { viewModel.shareCurrentSong(context) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .testTag("share_mp3_button"),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = GoldLight
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = GoldLight
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Share MP3", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                            }
+                        }
+
+                        if (!exportStatus.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = exportStatus ?: "",
+                                fontSize = 11.sp,
+                                color = GoldLight,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        // Generated Pieces Section
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+        // ==========================================
+        // PREVIOUS SONGS IN LIBRARY
+        // ==========================================
+        if (pieces.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Composed Movements",
+                    text = "Library Songs (${pieces.size})",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                 )
-                Text(
-                    text = "${pieces.size} pieces",
-                    style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
-                )
             }
-        }
 
-        items(pieces) { piece ->
-            PieceCard(
-                piece = piece,
-                isCurrent = currentPiece?.id == piece.id,
-                isPlaying = isPlaying && currentPiece?.id == piece.id,
-                onPlayToggle = {
-                    if (currentPiece?.id == piece.id) {
-                        viewModel.togglePlayPause()
-                    } else {
-                        viewModel.loadPiece(piece, autoPlay = true)
-                    }
-                },
-                onOpenStudio = {
-                    viewModel.loadPiece(piece, autoPlay = false)
-                    viewModel.setTab(StudioTab.PLAYER)
-                },
-                onToggleFavorite = { viewModel.toggleFavorite(piece.id) }
-            )
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(80.dp)) // Padding for bottom mini-player
-        }
-    }
-}
-
-@Composable
-fun PieceCard(
-    piece: OrchestralPiece,
-    isCurrent: Boolean,
-    isPlaying: Boolean,
-    onPlayToggle: () -> Unit,
-    onOpenStudio: () -> Unit,
-    onToggleFavorite: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("piece_card_${piece.id}"),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrent) DarkSurfaceHighlight else DarkSurface
-        ),
-        shape = RoundedCornerShape(14.dp),
-        border = if (isCurrent) androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.5f)) else null
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Artwork & Play Button Overlay
-                Box(
+            items(pieces) { piece ->
+                val isThisPlaying = activePiece?.id == piece.id && isPlaying
+                Card(
                     modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color(piece.accentColorHex),
-                                    RoyalViolet
-                                )
-                            )
-                        )
-                        .clickable { onPlayToggle() },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .clickable { viewModel.loadPiece(piece, autoPlay = true) }
+                        .testTag("piece_item_${piece.id}"),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (activePiece?.id == piece.id) DarkSurfaceHighlight else DarkSurface
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.45f)),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Title & Details
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = piece.title,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
+                        IconButton(
+                            onClick = {
+                                if (activePiece?.id == piece.id) {
+                                    viewModel.togglePlayPause()
+                                } else {
+                                    viewModel.loadPiece(piece, autoPlay = true)
+                                }
+                            },
                             modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(GoldPrimary.copy(alpha = 0.15f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(GoldPrimary)
                         ) {
+                            Icon(
+                                imageVector = if (isThisPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = Color(0xFF110C1C),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = piece.variationLabel,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = GoldLight
+                                text = piece.title,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${piece.styleDescription} • ${piece.tempoBpm} BPM",
+                                style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                viewModel.loadPiece(piece, autoPlay = false)
+                                viewModel.shareCurrentSong(context)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share",
+                                tint = GoldLight,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${piece.emotionalMood} • ${piece.keySignature} • ${piece.tempoBpm} BPM",
-                        style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary),
-                        maxLines = 1
-                    )
-                    Text(
-                        text = "${piece.durationFormatted} • ${if (piece.isInstrumental) "Instrumental" else "Vocal/Lyrics"}",
-                        style = MaterialTheme.typography.labelSmall.copy(color = TextMuted),
-                        maxLines = 1
-                    )
-                }
-
-                // Favorite Button
-                IconButton(onClick = onToggleFavorite) {
-                    Icon(
-                        imageVector = if (piece.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (piece.isFavorite) Color(0xFFFB7185) else TextMuted
-                    )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Action Row: Open in Full Studio / Harmony / Lyrics
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = onOpenStudio,
-                    colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.GraphicEq,
-                        contentDescription = null,
-                        tint = GoldPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Open in Studio",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextPrimary
-                    )
-                }
-            }
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

@@ -185,6 +185,13 @@ enum class InstrumentType(
     ),
 
     // Vocals
+    LEAD_VOCAL(
+        id = "lead_vocal",
+        displayName = "Lead Vocal",
+        family = InstrumentFamily.VOICE,
+        description = "Expressive vocal singing line with smooth melodic vibrato",
+        iconName = "mic"
+    ),
     VOCAL_DUET(
         id = "vocal_duet",
         displayName = "Duet: Call & Response",
